@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>知识库问答系统</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://gcore.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #2c3e50);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            color: #ecf0f1;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            height: 90vh;
+            background: rgba(25, 25, 35, 0.9);
+            border-radius: 20px;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 标题区域 */
+        .header {
+            background: #1e1e2d;
+            padding: 20px;
+            text-align: center;
+            border-bottom: 1px solid #2c3e50;
+            position: relative;
+            z-index: 10;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            background: linear-gradient(90deg, #3498db, #2ecc71);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        /* 聊天区域 */
+        .chat-container {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="rgba(30,30,45,0.7)"/><path d="M0 50 Q 25 40, 50 50 T 100 50" stroke="rgba(52,152,219,0.05)" fill="none" stroke-width="2"/></svg>');
+            background-size: 100px;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 15px 20px;
+            margin-bottom: 15px;
+            border-radius: 18px;
+            position: relative;
+            animation: fadeIn 0.3s ease-out;
+            word-wrap: break-word;
+            line-height: 1.5;
+        }
+
+        .user-message {
+            align-self: flex-end;
+            background: linear-gradient(135deg, #2ecc71, #3498db);
+            border-bottom-right-radius: 5px;
+            color: white;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .system-message {
+            align-self: flex-start;
+            background: rgba(60, 70, 90, 0.8);
+            border-bottom-left-radius: 5px;
+            color: #ecf0f1;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .message-time {
+            font-size: 0.7rem;
+            opacity: 0.7;
+            margin-top: 5px;
+            text-align: right;
+        }
+
+        /* 输入区域 */
+        .input-area {
+            padding: 15px;
+            background: #1e1e2d;
+            border-top: 1px solid #2c3e50;
+            position: relative;
+        }
+
+        .input-group {
+            display: flex;
+            margin-bottom: 15px;
+        }
+
+        .input-group input {
+            flex: 1;
+            padding: 14px 20px;
+            border: none;
+            border-radius: 30px;
+            background: rgba(40, 40, 55, 0.9);
+            color: #ecf0f1;
+            font-size: 1rem;
+            outline: none;
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .input-group input:focus {
+            background: rgba(50, 50, 65, 0.9);
+            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.3), 0 0 0 2px #3498db;
+        }
+
+        .input-group button {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            border: none;
+            color: white;
+            padding: 0 25px;
+            margin-left: 10px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .input-group button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+            background: linear-gradient(135deg, #3ca0db, #2c8bc9);
+        }
+
+        /* 功能按钮 */
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+        }
+
+        .action-buttons button {
+            flex: 1;
+            padding: 12px 0;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .add-data-btn {
+            background: linear-gradient(135deg, #9b59b6, #8e44ad);
+            color: white;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .clear-btn {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: white;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .action-buttons button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .action-buttons button:active {
+            transform: translateY(0);
+        }
+
+        /* 文件上传区域 */
+        .file-upload-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            display: none;
+        }
+
+        .file-upload-box {
+            background: #2c3e50;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .file-upload-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .file-upload-header h2 {
+            color: #ecf0f1;
+            font-size: 1.5rem;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: #e74c3c;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .file-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin: 20px 0;
+            background: rgba(40, 40, 55, 0.9);
+            border-radius: 10px;
+            padding: 15px;
+        }
+
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .file-item:last-child {
+            border-bottom: none;
+        }
+
+        .file-name {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .file-actions button {
+            background: rgba(231, 76, 60, 0.2);
+            border: 1px solid #e74c3c;
+            color: #e74c3c;
+            border-radius: 5px;
+            padding: 3px 8px;
+            cursor: pointer;
+        }
+
+        .upload-btn {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: 600;
+            display: block;
+            width: 100%;
+            margin-top: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .upload-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        /* 加载指示器 - 位于输入框上方 */
+        .typing-indicator {
+            display: none;
+            background: rgba(60, 70, 90, 0.8);
+            padding: 15px 20px;
+            border-radius: 18px;
+            margin: 0 auto 15px;
+            width: 90%;
+            max-width: 400px;
+            position: relative;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 5;
+        }
+
+        .typing-content {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .typing-text {
+            margin-left: 10px;
+            font-size: 0.9rem;
+            color: #3498db;
+            font-weight: 500;
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 5px;
+        }
+
+        .typing-dots span {
+            height: 10px;
+            width: 10px;
+            background-color: #3498db;
+            display: block;
+            border-radius: 50%;
+            opacity: 0.7;
+        }
+
+        .typing-dots span:nth-of-type(1) {
+            animation: typing 1s infinite;
+        }
+
+        .typing-dots span:nth-of-type(2) {
+            animation: typing 1s infinite 0.2s;
+        }
+
+        .typing-dots span:nth-of-type(3) {
+            animation: typing 1s infinite 0.4s;
+        }
+
+        /* 动画效果 */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes typing {
+            0% {
+                transform: translateY(0px);
+            }
+            50% {
+                transform: translateY(-5px);
+                background-color: #2ecc71;
+            }
+            100% {
+                transform: translateY(0px);
+            }
+        }
+
+        /* 滚动条样式 */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(30, 30, 45, 0.5);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(#3498db, #2ecc71);
+            border-radius: 4px;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 600px) {
+            .container {
+                height: 95vh;
+                border-radius: 15px;
+            }
+
+            .header h1 {
+                font-size: 1.4rem;
+            }
+
+            .message {
+                max-width: 90%;
+            }
+
+            .input-group button {
+                padding: 0 20px;
+            }
+
+            .file-upload-box {
+                padding: 20px;
+            }
+
+            .typing-indicator {
+                max-width: 90%;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <!-- 标题区域 -->
+    <div class="header">
+        <h1><i class="fas fa-brain"></i> 知识库问答系统</h1>
+    </div>
+
+    <!-- 聊天区域 -->
+    <div class="chat-container" id="chatContainer">
+        <!-- 系统欢迎消息 -->
+        <div class="message system-message">
+            <div>您好！我是知识库问答助手。您可以向我提问任何关于知识库中的问题，或者点击下方按钮添加新的数据文档。</div>
+            <div class="message-time" id="welcomeTime"></div>
+        </div>
+    </div>
+
+    <!-- 等待指示器 - 位于聊天区域和输入区域之间 -->
+    <div class="typing-indicator" id="typingIndicator">
+        <div class="typing-content">
+            <div class="typing-dots">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+            <div class="typing-text">正在思考中...</div>
+        </div>
+    </div>
+
+    <!-- 输入区域 -->
+    <div class="input-area">
+        <div class="input-group">
+            <input type="text" id="userInput" placeholder="请输入您的问题..." autocomplete="off">
+            <button id="sendButton"><i class="fas fa-paper-plane"></i> 发送</button>
+        </div>
+
+        <div class="action-buttons">
+            <button class="add-data-btn" id="addDataBtn">
+                <i class="fas fa-file-upload"></i> 添加数据文档
+            </button>
+            <button class="clear-btn" id="clearBtn">
+                <i class="fas fa-trash-alt"></i> 清除当前内容
+            </button>
+        </div>
+    </div>
+
+    <!-- 文件上传模态框 -->
+    <div class="file-upload-container" id="fileUploadContainer">
+        <div class="file-upload-box">
+            <div class="file-upload-header">
+                <h2><i class="fas fa-file-upload"></i> 上传数据文档</h2>
+                <button class="close-btn" id="closeUploadBtn">&times;</button>
+            </div>
+            <p>支持上传 PDF, DOCX, TXT 等格式的文档</p>
+
+            <div class="file-list" id="fileList">
+                <div class="file-item">
+                    <div class="file-name">
+                        <i class="fas fa-file-pdf"></i>
+                        <span>暂无上传文件</span>
+                    </div>
+                </div>
+            </div>
+
+            <input type="file" id="fileInput" multiple style="display: none">
+            <button class="upload-btn" id="selectFileBtn">
+                <i class="fas fa-folder-open"></i> 选择文件
+            </button>
+            <button class="upload-btn" id="uploadFilesBtn" style="background: linear-gradient(135deg, #2ecc71, #27ae60); margin-top: 10px;">
+                <i class="fas fa-cloud-upload-alt"></i> 上传文件
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const chatContainer = document.getElementById('chatContainer');
+        const userInput = document.getElementById('userInput');
+        const sendButton = document.getElementById('sendButton');
+        const addDataBtn = document.getElementById('addDataBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const fileUploadContainer = document.getElementById('fileUploadContainer');
+        const closeUploadBtn = document.getElementById('closeUploadBtn');
+        const selectFileBtn = document.getElementById('selectFileBtn');
+        const fileInput = document.getElementById('fileInput');
+        const uploadFilesBtn = document.getElementById('uploadFilesBtn');
+        const fileList = document.getElementById('fileList');
+        const typingIndicator = document.getElementById('typingIndicator');
+        const welcomeTime = document.getElementById('welcomeTime');
+
+        // 设置欢迎消息的时间为当前时间
+        const now = new Date();
+        welcomeTime.textContent = `系统消息 ${formatTime(now)}`;
+
+        // 存储上传的文件列表
+        let uploadedFiles = [];
+
+        // 滚动到聊天区域底部
+        function scrollToBottom() {
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        // 获取当前时间
+        function getCurrentTime() {
+            const now = new Date();
+            return formatTime(now);
+        }
+
+        // 格式化时间
+        function formatTime(date) {
+            return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+        }
+
+        // 添加用户消息
+        function addUserMessage(message) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message user-message';
+            messageDiv.innerHTML = `
+                    <div>${message}</div>
+                    <div class="message-time">用户 ${getCurrentTime()}</div>
+                `;
+            chatContainer.appendChild(messageDiv);
+            scrollToBottom();
+
+            // 显示正在输入指示器
+            typingIndicator.style.display = 'block';
+            scrollToBottom();
+
+            // 发送问题到后端
+            sendQuestionToBackend(message);
+        }
+
+        // 添加系统消息
+        function addSystemMessage(message) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message system-message';
+            messageDiv.innerHTML = `
+                    <div>${message}</div>
+                    <div class="message-time">系统回复 ${getCurrentTime()}</div>
+                `;
+            chatContainer.appendChild(messageDiv);
+            scrollToBottom();
+        }
+
+        // 发送问题到后端
+        function sendQuestionToBackend(question) {
+            // 检查是否有上传的文件
+            if (uploadedFiles.length === 0) {
+                // 隐藏指示器
+                typingIndicator.style.display = 'none';
+
+                // 提示用户上传文件
+                addSystemMessage('请先上传文件，系统需要文档内容来回答问题。点击"添加数据文档"按钮上传文件。');
+                return;
+            }
+
+            // 发送请求到后端API
+            axios.post('/api/ask', { question: question })
+                .then(response => {
+                    // 隐藏指示器
+                    typingIndicator.style.display = 'none';
+
+                    if (response.data.error) {
+                        // 显示错误信息
+                        addSystemMessage(response.data.message);
+                    } else {
+                        // 显示DeepSeek API的真实响应
+                        addSystemMessage(response.data.answer);
+                    }
+                })
+                .catch(error => {
+                    // 隐藏指示器
+                    typingIndicator.style.display = 'none';
+
+                    // 显示错误信息
+                    let errorMessage = '调用DeepSeek API时出错: ';
+                    if (error.response && error.response.data) {
+                        errorMessage += error.response.data.message || error.response.data.error;
+                    } else {
+                        errorMessage += error.message;
+                    }
+                    addSystemMessage(errorMessage);
+                });
+        }
+
+        // 格式化文件大小
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // 计算总文件大小
+        function formatTotalFileSize() {
+            const totalBytes = uploadedFiles.reduce((sum, file) => sum + file.size, 0);
+            if (totalBytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(totalBytes) / Math.log(k));
+            return parseFloat((totalBytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // 移除文件
+        function removeFile(index) {
+            uploadedFiles.splice(index, 1);
+            updateFileList();
+        }
+
+        // 更新文件列表显示
+        function updateFileList() {
+            fileList.innerHTML = '';
+
+            if (uploadedFiles.length === 0) {
+                fileList.innerHTML = `
+                        <div class="file-item">
+                            <div class="file-name">
+                                <i class="fas fa-file"></i>
+                                <span>暂无上传文件</span>
+                            </div>
+                        </div>
+                    `;
+                return;
+            }
+
+            uploadedFiles.forEach((file, index) => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+
+                let fileIcon = 'fa-file';
+                let fileType = '未知';
+
+                if (file.name.endsWith('.pdf')) {
+                    fileIcon = 'fa-file-pdf';
+                    fileType = 'PDF文档';
+                } else if (file.name.endsWith('.docx') || file.name.endsWith('.doc')) {
+                    fileIcon = 'fa-file-word';
+                    fileType = 'Word文档';
+                } else if (file.name.endsWith('.txt')) {
+                    fileIcon = 'fa-file-alt';
+                    fileType = '文本文件';
+                } else if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+                    fileIcon = 'fa-file-excel';
+                    fileType = 'Excel文件';
+                }
+
+                fileItem.innerHTML = `
+                        <div class="file-name">
+                            <i class="fas ${fileIcon}"></i>
+                            <div>
+                                <div>${file.name}</div>
+                                <div style="font-size: 0.8rem; opacity: 0.7">${fileType} - ${formatFileSize(file.size)}</div>
+                            </div>
+                        </div>
+                        <div class="file-actions">
+                            <button onclick="removeFile(${index})"><i class="fas fa-trash"></i></button>
+                        </div>
+                    `;
+
+                fileList.appendChild(fileItem);
+            });
+        }
+
+        // 发送消息
+        function sendMessage() {
+            const message = userInput.value.trim()||'';
+            if (message) {
+                addUserMessage(message);
+                userInput.value = '';
+            }
+        }
+
+        // 事件监听
+        sendButton.addEventListener('click', sendMessage);
+
+        userInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        addDataBtn.addEventListener('click', function() {
+            fileUploadContainer.style.display = 'flex';
+            updateFileList();
+        });
+
+        closeUploadBtn.addEventListener('click', function() {
+            fileUploadContainer.style.display = 'none';
+        });
+
+        selectFileBtn.addEventListener('click', function() {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', function(e) {
+            const files = Array.from(e.target.files);
+            uploadedFiles = uploadedFiles.concat(files);
+            updateFileList();
+        });
+
+        uploadFilesBtn.addEventListener('click', function() {
+            if (uploadedFiles.length === 0) {
+                alert('请先选择要上传的文件');
+                return;
+            }
+
+            // 显示上传中的指示器
+            typingIndicator.style.display = 'block';
+            typingIndicator.querySelector('.typing-text').textContent = '正在上传文件...';
+
+            // 创建FormData对象用于文件上传
+            const formData = new FormData();
+            uploadedFiles.forEach(file => {
+                formData.append('files', file);
+            });
+
+            // 发送文件到后端
+            axios.post('/api/upload', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                }
+            })
+                .then(response => {
+                    // 隐藏指示器
+                    typingIndicator.style.display = 'none';
+
+                    // 显示上传成功消息
+                    let uploadMessage = `成功上传 ${uploadedFiles.length} 个文件：\n`;
+                    uploadedFiles.forEach(file => {
+                        uploadMessage += `- ${file.name} (${formatFileSize(file.size)})\n`;
+                    });
+
+                    addSystemMessage(uploadMessage);
+                    fileUploadContainer.style.display = 'none';
+
+                    // 重置指示器文本
+                    typingIndicator.querySelector('.typing-text').textContent = '正在思考中...';
+                })
+                .catch(error => {
+                    // 隐藏指示器
+                    typingIndicator.style.display = 'none';
+
+                    // 显示错误信息
+                    let errorMessage = '文件上传失败: ';
+                    if (error.response && error.response.data) {
+                        errorMessage += error.response.data.message || error.response.data.error;
+                    } else {
+                        errorMessage += error.message;
+                    }
+                    addSystemMessage(errorMessage);
+
+                    // 重置指示器文本
+                    typingIndicator.querySelector('.typing-text').textContent = '正在思考中...';
+                });
+        });
+
+        clearBtn.addEventListener('click', function() {
+            if (confirm('确定要清除当前对话和所有上传的文件吗？此操作不可撤销。')) {
+                // 清除聊天记录（保留第一条系统消息）
+                const firstMessage = chatContainer.firstElementChild;
+                chatContainer.innerHTML = '';
+                chatContainer.appendChild(firstMessage);
+
+                // 发送清除请求到后端
+                axios.delete('/api/clear')
+                    .then(response => {
+                        // 清除上传的文件
+                        uploadedFiles = [];
+
+                        // 显示清除成功消息
+                        addSystemMessage('已清除所有对话内容和上传的文件');
+                    })
+                    .catch(error => {
+                        let errorMessage = '清除内容失败: ';
+                        if (error.response && error.response.data) {
+                            errorMessage += error.response.data.message || error.response.data.error;
+                        } else {
+                            errorMessage += error.message;
+                        }
+                        addSystemMessage(errorMessage);
+                    });
+            }
+        });
+
+        // 初始滚动到底部
+        scrollToBottom();
+
+        // 暴露removeFile函数给全局作用域，以便在HTML中使用
+        window.removeFile = removeFile;
+    });
+</script>
+</body>
+</html>
